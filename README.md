@@ -151,49 +151,6 @@ const results = await fetch('/api/search', {
 });
 ```
 
-## 🎯 Hackathon Demo Script
-
-1. **Show Landing Page** (30s)
-   - Explain the value prop: Proactive vs Reactive
-
-2. **Show Dashboard** (30s)
-   - Urgent alerts already visible
-   - No asking needed—it already knows
-
-3. **Add a Memory** (30s)
-   - Use the floating + button
-   - Add a study note with deadline
-
-4. **Show Pattern Detection** (30s)
-   - Best study time
-   - Consistency tracking
-   - Retention rates
-
-5. **Compare with Chat** (30s)
-   - "In regular chat, you'd have to ask"
-   - "In Rewind, it already tells you"
-
-## 🏆 Why This Wins
-
-- ✅ **Clear differentiation** from Supermemory
-- ✅ **Visually compelling** dashboard vs chat
-- ✅ **Technically impressive** pattern detection + quiz mode
-- ✅ **Solves real pain** for students/job seekers
-- ✅ **Production-ready** with proper API integration
-- ✅ **Proactive coaching** via email digests
-- ✅ **Auto-capture** from chat conversations
-- ✅ **Data-driven insights** from quiz performance
-
-## 📚 Documentation
-
-- **[FEATURES.md](FEATURES.md)** - Detailed feature documentation
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What we built and why
-- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 3 steps
-
-## 📄 License
-
-MIT
-
 ## 🙏 Acknowledgments
 
 Built with [Supermemory API](https://supermemory.ai) - the memory infrastructure for AI apps.
