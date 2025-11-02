@@ -4,11 +4,11 @@ import { supermemoryClient } from '@/lib/supermemory';
 // PATCH - Update specific memory (e.g., mark as reviewed)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
-    const { id } = params;
+    const { id } = await params;
 
     console.log(`[API] Updating memory ${id}:`, body);
 
