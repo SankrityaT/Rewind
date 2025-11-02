@@ -51,10 +51,21 @@ export function PremiumDashboardV3({ focusMode }: PremiumDashboardV3Props) {
         const study = memories.filter((m: any) => m.metadata?.type === 'study').length;
         const interview = memories.filter((m: any) => m.metadata?.type === 'interview').length;
         
+        // Calculate ACTUAL retention from quiz scores (same as pattern detector)
+        const memoriesWithRetention = memories.filter((m: any) => 
+          m.metadata?.retentionScore !== undefined && m.metadata?.retentionScore !== null
+        );
+        
+        const avgRetention = memoriesWithRetention.length > 0
+          ? memoriesWithRetention.reduce((sum: number, m: any) => 
+              sum + (m.metadata.retentionScore || 0), 0
+            ) / memoriesWithRetention.length
+          : (reviewed / total); // Fallback to review rate if no quiz data
+        
         setRealStats({
           total,
           reviewed,
-          retention: total > 0 ? Math.round((reviewed / total) * 100) : 0,
+          retention: Math.round(avgRetention * 100), // ACTUAL quiz retention, not just reviewed %
           study: total > 0 ? Math.round((study / total) * 100) : 0,
           interview: total > 0 ? Math.round((interview / total) * 100) : 0,
         });
@@ -166,6 +177,9 @@ export function PremiumDashboardV3({ focusMode }: PremiumDashboardV3Props) {
                 <span className="text-sm text-gray-400">Retention</span>
               </div>
               <div className="text-3xl font-bold text-white">{retentionRate}%</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {reviewedPercent}% reviewed • Quiz avg
+              </div>
             </div>
           </div>
         </div>

@@ -15,9 +15,9 @@ interface Alert {
   priority: number;
 }
 
-// Simple in-memory cache (5 minutes)
+// Simple in-memory cache - longer duration to avoid rate limits
 const alertCache = new Map<string, { alerts: Alert[], timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes - avoid hitting rate limits during demo
 
 export async function POST(req: NextRequest) {
   let memories: any[] = [];
@@ -160,9 +160,9 @@ Return JSON array of alerts with this structure:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      model: 'llama-3.1-8b-instant', // Faster, uses 10x fewer tokens
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct', // 30K TPM, 500K TPD - won't hit rate limits
       temperature: 0.7,
-      max_tokens: 800,
+      max_tokens: 500, // Reduced to save tokens
       response_format: { type: 'json_object' },
     });
 
@@ -206,33 +206,44 @@ Return JSON array of alerts with this structure:
 function generateFallbackAlerts(memories: any[]): Alert[] {
   const alerts: Alert[] = [];
   
-  // Check for urgent deadlines (prioritize unreviewed)
-  const urgentDeadlines = memories.filter(m => {
+  // Check for TODAY's deadlines first (most urgent!)
+  const todayDeadlines = memories.filter(m => {
     if (!m.metadata?.deadline) return false;
-    const daysUntil = Math.floor((new Date(m.metadata.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    return daysUntil <= 3 && daysUntil >= 0;
+    const deadline = new Date(m.metadata.deadline);
+    const today = new Date();
+    return deadline.toDateString() === today.toDateString();
   });
 
-  const unreviewedUrgent = urgentDeadlines.filter(m => !m.metadata?.reviewed);
+  const unreviewedToday = todayDeadlines.filter(m => !m.metadata?.reviewed);
 
-  if (unreviewedUrgent.length > 0) {
+  if (unreviewedToday.length > 0) {
     alerts.push({
-      id: 'urgent-deadline',
+      id: 'today-deadline',
       type: 'urgent',
-      title: `${unreviewedUrgent.length} unreviewed deadline${unreviewedUrgent.length > 1 ? 's' : ''} approaching`,
-      message: `You have ${unreviewedUrgent.length} unreviewed ${unreviewedUrgent.length > 1 ? 'items' : 'item'} due in the next 3 days. Review and complete them now!`,
-      memoryIds: unreviewedUrgent.map(m => m.id),
+      title: `${unreviewedToday.length} ${unreviewedToday.length === 1 ? 'deadline' : 'deadlines'} DUE TODAY`,
+      message: `You have ${unreviewedToday.length} unreviewed ${unreviewedToday.length === 1 ? 'item' : 'items'} due today! Review and complete them now.`,
+      memoryIds: unreviewedToday.map(m => m.id),
       priority: 10,
     });
-  } else if (urgentDeadlines.length > 0) {
-    // All urgent deadlines are reviewed
+  }
+
+  // Check for upcoming deadlines (next 3 days, excluding today)
+  const upcomingDeadlines = memories.filter(m => {
+    if (!m.metadata?.deadline) return false;
+    const daysUntil = Math.floor((new Date(m.metadata.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return daysUntil > 0 && daysUntil <= 3;
+  });
+
+  const unreviewedUpcoming = upcomingDeadlines.filter(m => !m.metadata?.reviewed);
+
+  if (unreviewedUpcoming.length > 0) {
     alerts.push({
-      id: 'urgent-deadline-reviewed',
-      type: 'info',
-      title: `${urgentDeadlines.length} deadline${urgentDeadlines.length > 1 ? 's' : ''} coming up`,
-      message: `You've reviewed these items. Make sure to complete them before the deadline!`,
-      memoryIds: urgentDeadlines.map(m => m.id),
-      priority: 7,
+      id: 'upcoming-deadline',
+      type: 'warning',
+      title: `${unreviewedUpcoming.length} deadline${unreviewedUpcoming.length > 1 ? 's' : ''} this week`,
+      message: `You have ${unreviewedUpcoming.length} unreviewed ${unreviewedUpcoming.length > 1 ? 'items' : 'item'} due in the next 3 days.`,
+      memoryIds: unreviewedUpcoming.map(m => m.id),
+      priority: 8,
     });
   }
 

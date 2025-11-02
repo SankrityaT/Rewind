@@ -97,6 +97,13 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, content, metadata } = body;
 
+    console.log('[API/memories PUT] Updating memory:', { 
+      id, 
+      hasContent: Boolean(content),
+      contentLength: content?.length,
+      metadata 
+    });
+
     if (!id) {
       return NextResponse.json(
         { error: 'Memory ID is required' },
@@ -104,14 +111,26 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const response = await supermemoryClient.memories.update(id, {
-      content,
-      metadata,
-    });
+    const updatePayload: any = {};
+    
+    if (content !== undefined) {
+      updatePayload.content = content;
+    }
+    
+    if (metadata !== undefined) {
+      updatePayload.metadata = metadata;
+    }
+
+    console.log('[API/memories PUT] Sending to Supermemory:', updatePayload);
+
+    const response = await supermemoryClient.memories.update(id, updatePayload);
+
+    console.log('[API/memories PUT] Supermemory response:', response);
 
     return NextResponse.json({ memory: response });
   } catch (error: any) {
-    console.error('Error updating memory:', error);
+    console.error('[API/memories PUT] Error updating memory:', error);
+    console.error('[API/memories PUT] Error details:', error.response?.data || error.message);
     return NextResponse.json(
       { error: error.message || 'Failed to update memory' },
       { status: 500 }

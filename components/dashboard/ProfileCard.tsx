@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
 
 interface ProfileCardProps {
@@ -13,6 +14,25 @@ export function ProfileCard({
   role = 'Student & Developer',
   imageUrl = 'https://avatars.githubusercontent.com/u/yourusername' // Add your GitHub avatar or any image URL
 }: ProfileCardProps) {
+  const [totalMemories, setTotalMemories] = useState(0);
+
+  useEffect(() => {
+    fetchTotalMemories();
+  }, []);
+
+  const fetchTotalMemories = async () => {
+    try {
+      const response = await fetch('/api/memories?limit=1000');
+      const data = await response.json();
+      
+      if (data.memories) {
+        setTotalMemories(data.memories.length);
+      }
+    } catch (error) {
+      console.error('Error fetching total memories:', error);
+    }
+  };
+
   return (
     <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-2xl relative overflow-hidden">
       {/* Glossy overlay */}
@@ -34,13 +54,7 @@ export function ProfileCard({
 
         {/* Name & Role */}
         <h3 className="text-xl font-bold text-white mb-1">{name}</h3>
-        <p className="text-sm text-gray-400 mb-4">{role}</p>
-
-        {/* Memory Stats */}
-        <div className="w-full bg-white/10 backdrop-blur-xl rounded-xl p-3 border border-white/20">
-          <div className="text-2xl font-bold text-white">47</div>
-          <div className="text-xs text-gray-400">Total Memories</div>
-        </div>
+        <p className="text-sm text-gray-400">{role}</p>
       </div>
     </div>
   );

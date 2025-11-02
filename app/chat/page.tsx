@@ -6,7 +6,16 @@ import { DarkBackground } from '@/components/DarkBackground';
 import { Send, Sparkles, Loader2, ExternalLink, CheckCircle, Trash2, Calendar, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import { Memory } from '@/types';
+
+interface QuizQuestion {
+  id: string;
+  question: string;
+  answer: string;
+  memoryId: string;
+  subject?: string;
+}
 
 interface Message {
   id: string;
@@ -14,6 +23,13 @@ interface Message {
   content: string;
   memories?: Memory[];
   timestamp: Date;
+  quiz?: {
+    questions: QuizQuestion[];
+    currentIndex: number;
+    score: number;
+    showAnswer: boolean;
+    userAnswered?: boolean;
+  };
 }
 
 export default function ChatPage() {
@@ -28,6 +44,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [expandedMemories, setExpandedMemories] = useState<Set<string>>(new Set());
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -66,10 +83,22 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
+      // Send conversation history (last 10 messages, excluding the initial welcome)
+      const conversationHistory = messages
+        .slice(1) // Skip welcome message
+        .slice(-10) // Last 10 messages
+        .map(m => ({
+          role: m.role,
+          content: m.content,
+        }));
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ 
+          message: input,
+          history: conversationHistory,
+        }),
       });
 
       const data = await response.json();
@@ -80,6 +109,12 @@ export default function ChatPage() {
         content: data.response,
         memories: data.memories,
         timestamp: new Date(),
+        quiz: data.isQuiz ? {
+          questions: data.quiz,
+          currentIndex: 0,
+          score: 0,
+          showAnswer: false,
+        } : undefined,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -106,33 +141,55 @@ export default function ChatPage() {
 
   const toggleReviewed = async (memory: Memory) => {
     try {
-      const response = await fetch('/api/memories', {
-        method: 'PUT',
+      // Optimistic update - update UI immediately
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        memories: msg.memories?.map(m => 
+          m.id === memory.id 
+            ? { 
+                ...m, 
+                metadata: { 
+                  ...m.metadata, 
+                  reviewed: !m.metadata.reviewed,
+                  lastReviewed: !m.metadata.reviewed ? new Date().toISOString() : m.metadata.lastReviewed,
+                } 
+              }
+            : m
+        ),
+      })));
+
+      // Then update backend
+      const response = await fetch(`/api/memories/${memory.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: memory.id,
-          content: memory.content,
-          metadata: {
-            ...memory.metadata,
-            reviewed: !memory.metadata.reviewed,
-            lastReviewed: !memory.metadata.reviewed ? new Date().toISOString() : memory.metadata.lastReviewed,
-          },
+        body: JSON.stringify({ 
+          reviewed: !memory.metadata.reviewed 
         }),
       });
 
-      if (response.ok) {
-        // Update the memory in the messages
+      if (!response.ok) {
+        // Revert on error
         setMessages(prev => prev.map(msg => ({
           ...msg,
           memories: msg.memories?.map(m => 
             m.id === memory.id 
-              ? { ...m, metadata: { ...m.metadata, reviewed: !m.metadata.reviewed } }
+              ? { ...m, metadata: { ...m.metadata, reviewed: memory.metadata.reviewed } }
               : m
           ),
         })));
+        console.error('Failed to update memory');
       }
     } catch (error) {
       console.error('Error updating memory:', error);
+      // Revert on error
+      setMessages(prev => prev.map(msg => ({
+        ...msg,
+        memories: msg.memories?.map(m => 
+          m.id === memory.id 
+            ? { ...m, metadata: { ...m.metadata, reviewed: memory.metadata.reviewed } }
+            : m
+        ),
+      })));
     }
   };
 
@@ -145,11 +202,72 @@ export default function ChatPage() {
     }
   };
 
+  const submitQuizAnswer = async (messageId: string) => {
+    const userAnswer = quizAnswers[messageId] || '';
+    if (!userAnswer.trim()) return;
+
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && msg.quiz) {
+        return {
+          ...msg,
+          quiz: {
+            ...msg.quiz,
+            showAnswer: true,
+          },
+        };
+      }
+      return msg;
+    }));
+  };
+
+  const handleQuizAnswer = async (messageId: string, correct: boolean) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && msg.quiz) {
+        const currentQ = msg.quiz.questions[msg.quiz.currentIndex];
+        const newScore = correct ? msg.quiz.score + 1 : msg.quiz.score;
+        
+        // Update retention score in backend
+        fetch('/api/quiz/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memoryId: currentQ.memoryId, correct }),
+        });
+        
+        // Clear the answer input
+        setQuizAnswers(prev => ({ ...prev, [messageId]: '' }));
+        
+        return {
+          ...msg,
+          quiz: {
+            ...msg.quiz,
+            score: newScore,
+            showAnswer: false,
+            currentIndex: msg.quiz.currentIndex + 1,
+            userAnswered: true,
+          },
+        };
+      }
+      return msg;
+    }));
+  };
+
+  const toggleQuizAnswer = (messageId: string) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId && msg.quiz) {
+        return {
+          ...msg,
+          quiz: { ...msg.quiz, showAnswer: !msg.quiz.showAnswer },
+        };
+      }
+      return msg;
+    }));
+  };
+
   const suggestedQuestions = [
-    "What did I study about databases?",
+    "Quiz me on system design",
     "What should I focus on for my upcoming interview?",
-    "Show me my high priority memories",
-    "What have I learned about system design?",
+    "Test me on my weak areas",
+    "Quick review quiz",
   ];
 
   return (
@@ -211,9 +329,168 @@ export default function ChatPage() {
                         <Sparkles className="w-4 h-4 text-purple-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="pt-1">
-                          <p className="text-gray-200 text-base leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                        <div className="pt-1 text-gray-200 text-base leading-relaxed">
+                          <ReactMarkdown
+                            components={{
+                              p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                              ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                              ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                              li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                              em: ({node, ...props}) => <em className="italic" {...props} />,
+                              code: ({node, ...props}) => <code className="bg-white/10 px-1 py-0.5 rounded text-sm" {...props} />,
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
                         </div>
+
+                        {/* Quiz Component */}
+                        {message.quiz && message.quiz.questions.length > 0 && (
+                          <div className="mt-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-2xl p-6">
+                            {message.quiz.currentIndex < message.quiz.questions.length ? (
+                              /* Active Quiz */
+                              <div>
+                                <div className="flex items-center justify-between mb-4">
+                                  <span className="text-sm text-purple-300 font-medium">
+                                    Question {message.quiz.currentIndex + 1} of {message.quiz.questions.length}
+                                  </span>
+                                  <span className="text-sm text-gray-400">
+                                    Score: {message.quiz.score}/{message.quiz.currentIndex}
+                                  </span>
+                                </div>
+                                
+                                <div className="bg-white/5 rounded-xl p-4 mb-4">
+                                  <p className="text-white text-lg font-medium mb-4">
+                                    {message.quiz.questions[message.quiz.currentIndex].question}
+                                  </p>
+                                  
+                                  {/* Answer Input */}
+                                  {!message.quiz.showAnswer && (
+                                    <div className="space-y-3">
+                                      <textarea
+                                        value={quizAnswers[message.id] || ''}
+                                        onChange={(e) => setQuizAnswers(prev => ({ ...prev, [message.id]: e.target.value }))}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            submitQuizAnswer(message.id);
+                                          }
+                                        }}
+                                        placeholder="Type your answer here..."
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-gray-500 focus:border-purple-500 focus:outline-none resize-none"
+                                        rows={3}
+                                      />
+                                      <button
+                                        onClick={() => submitQuizAnswer(message.id)}
+                                        disabled={!quizAnswers[message.id]?.trim()}
+                                        className="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-white/10 disabled:text-gray-500 rounded-xl text-white text-sm font-medium transition-all disabled:cursor-not-allowed"
+                                      >
+                                        Submit Answer
+                                      </button>
+                                    </div>
+                                  )}
+                                  
+                                  {message.quiz.showAnswer && (
+                                    <div className="space-y-3">
+                                      {/* User's Answer */}
+                                      {quizAnswers[message.id] && (
+                                        <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                                          <p className="text-sm text-blue-300 font-medium mb-1">Your answer:</p>
+                                          <p className="text-gray-200">{quizAnswers[message.id]}</p>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Correct Answer */}
+                                      <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                                        <p className="text-sm text-green-300 font-medium mb-1">Correct answer:</p>
+                                        <p className="text-gray-200">{message.quiz.questions[message.quiz.currentIndex].answer}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-3">
+                                  {message.quiz.showAnswer ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleQuizAnswer(message.id, true)}
+                                        className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 rounded-xl text-green-300 text-sm font-medium transition-all"
+                                      >
+                                        ✓ I got it right
+                                      </button>
+                                      <button
+                                        onClick={() => handleQuizAnswer(message.id, false)}
+                                        className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-xl text-red-300 text-sm font-medium transition-all"
+                                      >
+                                        ✗ I got it wrong
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      onClick={() => toggleQuizAnswer(message.id)}
+                                      className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-sm font-medium transition-all"
+                                    >
+                                      Skip / Show Answer
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              /* Quiz Complete */
+                              <div className="text-center">
+                                <div className="text-4xl mb-4">🎉</div>
+                                <h3 className="text-2xl font-bold text-white mb-2">Quiz Complete!</h3>
+                                <p className="text-gray-300 mb-4">
+                                  You scored {message.quiz.score} out of {message.quiz.questions.length}
+                                </p>
+                                <div className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                                  {Math.round((message.quiz.score / message.quiz.questions.length) * 100)}%
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Attribution Badge */}
+                        {message.memories && message.memories.length > 0 && (
+                          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="text-xs text-purple-300 font-medium">
+                              Based on {message.memories.length} {message.memories.length === 1 ? 'memory' : 'memories'}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        {message.memories && message.memories.length > 0 && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={async () => {
+                                // Mark all as reviewed
+                                for (const memory of message.memories!) {
+                                  await fetch(`/api/memories/${memory.id}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ reviewed: true }),
+                                  });
+                                }
+                                alert('All memories marked as reviewed!');
+                              }}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 rounded-lg text-xs text-green-400 font-medium transition-colors"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Review All
+                            </button>
+                            <Link
+                              href="/memories"
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-xs text-blue-400 font-medium transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              View All Memories
+                            </Link>
+                          </div>
+                        )}
 
                         {/* Memory Cards - Horizontal Scroll */}
                         {message.memories && message.memories.length > 0 && (

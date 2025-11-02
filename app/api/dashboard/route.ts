@@ -6,19 +6,30 @@ import { Memory } from '@/types';
 export async function GET(request: NextRequest) {
   try {
     // Fetch all memories for the user
-    const response = await supermemoryClient.memories.list({
+    const response: any = await supermemoryClient.memories.list({
       containerTags: [USER_CONTAINER_TAG],
       limit: 200,
     });
 
+    // Handle different response formats
+    let rawMemories = response?.results || response?.memories || response?.data || [];
+    if (Array.isArray(response)) {
+      rawMemories = response;
+    }
+
+    console.log('[Dashboard] Fetched memories:', rawMemories.length);
+    if (rawMemories.length > 0) {
+      console.log('[Dashboard] First memory:', rawMemories[0]);
+    }
+
     // Transform to our Memory type
-    const memories: Memory[] = (response as any).results?.map((m: any) => ({
+    const memories: Memory[] = rawMemories.map((m: any) => ({
       id: m.id,
-      content: m.content,
+      content: m.summary || m.content || '',
       metadata: m.metadata || {},
       createdAt: m.createdAt || new Date().toISOString(),
       updatedAt: m.updatedAt || new Date().toISOString(),
-    })) || [];
+    }));
 
     // Run pattern detection
     const detector = new PatternDetector(memories);

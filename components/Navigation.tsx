@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Brain, LayoutDashboard, List, Search, Settings, Sparkles, RefreshCw } from 'lucide-react';
+import { Brain, LayoutDashboard, List, Search, Settings, Sparkles, RefreshCw, Zap } from 'lucide-react';
 import { useFocusMode } from '@/contexts/FocusModeContext';
 
 export function Navigation() {
@@ -10,12 +10,18 @@ export function Navigation() {
   const router = useRouter();
   const { focusMode, setFocusMode } = useFocusMode();
 
-  const links = [
+  // Base links always visible
+  const baseLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/memories', label: 'Memories', icon: List },
     { href: '/search', label: 'Search', icon: Search },
     { href: '/chat', label: 'Ask Recall', icon: Sparkles },
   ];
+  
+  // Add Quiz only in study mode
+  const links = focusMode === 'study' 
+    ? [...baseLinks, { href: '/quiz', label: 'Quiz', icon: Zap }]
+    : baseLinks;
 
   return (
     <nav className="py-4 sticky top-0 z-50 backdrop-blur-xl border-b border-white/10">
@@ -82,9 +88,9 @@ export function Navigation() {
                 </button>
               )}
               
-              <button className="p-2.5 text-gray-400 hover:bg-white/10 hover:text-white rounded-xl transition-all hover:scale-110">
+              <Link href="/settings" className="p-2.5 text-gray-400 hover:bg-white/10 hover:text-white rounded-xl transition-all hover:scale-110">
                 <Settings className="w-5 h-5" />
-              </button>
+              </Link>
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full shadow-lg hover:scale-110 transition-transform cursor-pointer ring-2 ring-white/20" />
             </div>
           </div>

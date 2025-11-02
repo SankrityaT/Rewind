@@ -76,7 +76,7 @@ export function MemoryTypesCard() {
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-2xl relative overflow-hidden">
+    <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-2xl relative overflow-hidden flex-1 flex flex-col">
       {/* Glossy overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
       

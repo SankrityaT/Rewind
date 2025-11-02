@@ -33,7 +33,7 @@ export interface Alert {
 }
 
 export interface Pattern {
-  type: 'time' | 'gap' | 'consistency' | 'performance';
+  type: 'time' | 'gap' | 'consistency' | 'performance' | 'habit';
   title: string;
   description: string;
   confidence: number;

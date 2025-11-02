@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/Navigation';
 import { DarkBackground } from '@/components/DarkBackground';
+import { Dialog } from '@/components/ui/Dialog';
 import { Memory, MemoryType } from '@/types';
 import { ArrowLeft, Save, Trash2, Calendar, Tag, AlertCircle, CheckCircle, Loader2, Clock, Edit3, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -17,6 +18,8 @@ export default function MemoryDetailPage() {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
   
   const [formData, setFormData] = useState({
     content: '',
@@ -135,8 +138,14 @@ export default function MemoryDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!memory || !confirm('Are you sure you want to delete this memory?')) return;
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!memory) return;
+    
+    setShowDeleteDialog(false);
     
     try {
       const response = await fetch(`/api/memories?id=${memory.id}`, {
@@ -144,7 +153,13 @@ export default function MemoryDetailPage() {
       });
       
       if (response.ok) {
-        router.push('/memories');
+        setDeleteSuccess(true);
+        // Redirect after showing success message
+        setTimeout(() => {
+          router.push('/memories');
+        }, 1500);
+      } else {
+        alert('Failed to delete memory');
       }
     } catch (error) {
       console.error('Error deleting memory:', error);
@@ -160,16 +175,15 @@ export default function MemoryDetailPage() {
     
     const newReviewed = !formData.reviewed;
     console.log('[toggleReviewed] Toggling from', formData.reviewed, 'to', newReviewed);
-    setFormData({ ...formData, reviewed: newReviewed });
     
     try {
       const payload = {
         id: memory.id,
-        content: memory.content,
+        content: memory.content || formData.content,
         metadata: {
           ...memory.metadata,
           reviewed: newReviewed,
-          lastReviewed: newReviewed ? new Date().toISOString() : memory.metadata.lastReviewed,
+          lastReviewed: newReviewed ? new Date().toISOString() : undefined,
         },
       };
       console.log('[toggleReviewed] Sending PUT request:', payload);
@@ -188,8 +202,26 @@ export default function MemoryDetailPage() {
         return;
       }
       
-      console.log('[toggleReviewed] Success, refetching memory');
-      fetchMemory();
+      const result = await response.json();
+      console.log('[toggleReviewed] API returned:', result);
+      
+      // Update local state directly without refetching
+      const updatedMemory: Memory = {
+        ...memory,
+        metadata: {
+          ...memory.metadata,
+          reviewed: newReviewed,
+          lastReviewed: newReviewed ? new Date().toISOString() : undefined,
+        },
+      };
+      
+      setMemory(updatedMemory);
+      setFormData({
+        ...formData,
+        reviewed: newReviewed,
+      });
+      
+      console.log('[toggleReviewed] Updated local state to reviewed:', newReviewed);
     } catch (error) {
       console.error('[toggleReviewed] Error:', error);
       alert('Failed to update review status');
@@ -315,7 +347,7 @@ export default function MemoryDetailPage() {
                         Edit
                       </button>
                       <button
-                        onClick={handleDelete}
+                        onClick={handleDeleteClick}
                         className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                         title="Delete memory"
                       >
@@ -483,6 +515,74 @@ export default function MemoryDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        title="Delete Memory?"
+        message="Are you sure you want to delete this memory? This action cannot be undone."
+        type="error"
+        confirmText="Delete"
+      />
+
+      {/* Delete button in dialog - we need a custom dialog for this */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setShowDeleteDialog(false)}
+          />
+          
+          <div className="relative bg-[#1a1f2e] rounded-3xl shadow-2xl border border-white/10 max-w-md w-full animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowDeleteDialog(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="p-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-red-500/20 to-pink-500/20 border border-red-500/30 mb-6">
+                <AlertCircle className="w-16 h-16 text-red-400" />
+              </div>
+
+              <h2 className="text-2xl font-bold text-white mb-3 font-syne">
+                Delete Memory?
+              </h2>
+
+              <p className="text-gray-300 leading-relaxed mb-8">
+                Are you sure you want to delete this memory? This action cannot be undone.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteDialog(false)}
+                  className="flex-1 py-4 bg-white/10 text-white rounded-2xl font-semibold hover:bg-white/20 transition-all border border-white/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 py-4 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-2xl font-semibold hover:scale-105 transition-transform shadow-lg shadow-red-500/30"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Dialog */}
+      <Dialog
+        isOpen={deleteSuccess}
+        onClose={() => {}}
+        title="Memory Deleted"
+        message="Your memory has been successfully deleted. Redirecting..."
+        type="success"
+        confirmText="OK"
+      />
     </DarkBackground>
   );
 }

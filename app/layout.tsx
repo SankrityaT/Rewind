@@ -21,7 +21,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "Rewind - Your Memory Never Forgets",
+  title: "Rewind - Never Forgets",
   description: "Proactive memory intelligence that tells you what to do next. Stop searching, start remembering.",
 };
 

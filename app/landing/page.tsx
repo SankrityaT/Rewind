@@ -85,9 +85,9 @@ export default function LandingPage() {
 
           {/* Main Headline */}
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold font-syne leading-none">
-            <span className="text-white drop-shadow-2xl">Your Memory</span>
+            <span className="bg-gradient-to-r from-purple-200 via-pink-200 to-purple-300 bg-clip-text text-transparent drop-shadow-2xl">Rewind</span>
             <br />
-            <span className="bg-gradient-to-r from-purple-300 via-pink-300 to-purple-400 bg-clip-text text-transparent animate-gradient drop-shadow-lg">
+            <span className="text-white drop-shadow-lg">
               Never Forgets
             </span>
           </h1>
@@ -104,12 +104,9 @@ export default function LandingPage() {
               href="/dashboard"
               className="group px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 rounded-full font-semibold text-lg flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/60"
             >
-              Get Started Free
+              Get Started
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button className="px-8 py-4 bg-white/10 backdrop-blur-xl border border-purple-300/30 rounded-full font-semibold text-lg hover:bg-white/20 transition-all text-purple-100">
-              Watch Demo
-            </button>
           </div>
 
           {/* Stats */}

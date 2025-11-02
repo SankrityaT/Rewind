@@ -15,11 +15,31 @@ Rewind is built on top of [Supermemory API](https://supermemory.ai) to provide a
 - "You have an interview in 3 days. Last time you prepped 5 days before. Start now?"
 - Automatic deadline tracking with urgency ranking
 - Unreviewed content detection
+- **NEW:** Email digests with daily/weekly summaries
 
-### 📊 Pattern Detection
-- Discovers your best study times based on quiz scores
+### 📊 Enhanced Pattern Detection
+- Discovers your best study times correlated with quiz performance
 - Identifies gaps in your knowledge automatically
-- Tracks consistency and retention rates
+- Tracks consistency with streak detection
+- **NEW:** Retention trend analysis (improving/declining/stable)
+- **NEW:** Knowledge gap detection per subject
+- **NEW:** Review habit tracking
+
+### 🧠 Quiz Mode
+- **NEW:** AI-generated questions from your memories
+- **NEW:** Retention score tracking per memory
+- **NEW:** Subject-based quizzes
+- **NEW:** Self-assessment with detailed results
+
+### 💬 Chat Auto-Save
+- **NEW:** Conversations automatically become memories
+- **NEW:** Smart detection of learning content
+- **NEW:** Metadata extraction (type, subject, priority)
+
+### 📝 Memory Templates
+- **NEW:** 6 pre-built templates (Study, Interview, Algorithm, Meeting, Concept, Tip)
+- **NEW:** First-person writing style enforcement
+- **NEW:** Structured metadata extraction
 
 ### 🎯 Context-Aware Modes
 - **Study Mode**: Quiz tracking, spaced repetition, weak topic detection
@@ -90,7 +110,15 @@ The pattern detector analyzes your memories to provide:
 ```env
 SUPERMEMORY_API_KEY=your_api_key_here
 NEXT_PUBLIC_USER_ID=user_123
+GROQ_API_KEY=your_groq_api_key_here  # For AI features (chat, quiz)
+
+# Optional - for email sending
+SENDGRID_API_KEY=your_sendgrid_key
+# or
+RESEND_API_KEY=your_resend_key
 ```
+
+Get Groq API key (free): https://console.groq.com/
 
 ## 📝 Usage
 
@@ -149,9 +177,18 @@ const results = await fetch('/api/search', {
 
 - ✅ **Clear differentiation** from Supermemory
 - ✅ **Visually compelling** dashboard vs chat
-- ✅ **Technically impressive** pattern detection
+- ✅ **Technically impressive** pattern detection + quiz mode
 - ✅ **Solves real pain** for students/job seekers
 - ✅ **Production-ready** with proper API integration
+- ✅ **Proactive coaching** via email digests
+- ✅ **Auto-capture** from chat conversations
+- ✅ **Data-driven insights** from quiz performance
+
+## 📚 Documentation
+
+- **[FEATURES.md](FEATURES.md)** - Detailed feature documentation
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What we built and why
+- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 3 steps
 
 ## 📄 License
 
