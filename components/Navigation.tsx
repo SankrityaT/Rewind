@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Brain, LayoutDashboard, List, Search, Settings, Sparkles, RefreshCw, Zap } from 'lucide-react';
+import { Brain, LayoutDashboard, List, Search, Settings, Sparkles, RefreshCw, Zap, Plug } from 'lucide-react';
 import { useFocusMode } from '@/contexts/FocusModeContext';
 
 export function Navigation() {
@@ -16,10 +16,11 @@ export function Navigation() {
     { href: '/memories', label: 'Memories', icon: List },
     { href: '/search', label: 'Search', icon: Search },
     { href: '/chat', label: 'Ask Recall', icon: Sparkles },
+    { href: '/integrations', label: 'Integrations', icon: Plug },
   ];
-  
+
   // Add Quiz only in study mode
-  const links = focusMode === 'study' 
+  const links = focusMode === 'study'
     ? [...baseLinks, { href: '/quiz', label: 'Quiz', icon: Zap }]
     : baseLinks;
 

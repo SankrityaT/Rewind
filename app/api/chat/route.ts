@@ -20,10 +20,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Fetch all memories directly
-    const { supermemoryClient, USER_CONTAINER_TAG } = await import('@/lib/supermemory');
-    
+    const { supermemoryClient } = await import('@/lib/supermemory');
+    const { getUserContainerTag } = await import('@/lib/auth');
+
+    const containerTag = await getUserContainerTag();
+
     const response: any = await supermemoryClient.memories.list({
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit: 100,
     });
 
@@ -63,7 +66,7 @@ export async function POST(req: NextRequest) {
     // Step 4: Auto-save conversation as memory if it contains learnings
     let savedMemory = null;
     if (autoSave) {
-      savedMemory = await autoSaveConversation(message, aiResponse, supermemoryClient, USER_CONTAINER_TAG);
+      savedMemory = await autoSaveConversation(message, aiResponse, supermemoryClient, containerTag);
     }
 
     return NextResponse.json({

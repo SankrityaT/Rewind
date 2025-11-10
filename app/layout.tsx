@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter, Syne } from "next/font/google";
 import "./globals.css";
 import { FocusModeProvider } from "@/contexts/FocusModeContext";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -31,14 +32,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${spaceGrotesk.variable} ${inter.variable} ${syne.variable} antialiased`}
-      >
-        <FocusModeProvider>
-          {children}
-        </FocusModeProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${spaceGrotesk.variable} ${inter.variable} ${syne.variable} antialiased`}
+        >
+          <FocusModeProvider>
+            {children}
+          </FocusModeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

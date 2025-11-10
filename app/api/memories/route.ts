@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supermemoryClient, USER_CONTAINER_TAG } from '@/lib/supermemory';
+import { supermemoryClient } from '@/lib/supermemory';
+import { getUserContainerTag } from '@/lib/auth';
 
 // GET - List all memories
 export async function GET(request: NextRequest) {
   try {
+    const containerTag = await getUserContainerTag();
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type');
     const limit = parseInt(searchParams.get('limit') || '100');
 
     // Fetch from Supermemory using list - it DOES return content
     const response: any = await supermemoryClient.memories.list({
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit,
     });
 
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
 // POST - Add new memory
 export async function POST(request: NextRequest) {
   try {
+    const containerTag = await getUserContainerTag();
     const body = await request.json();
     const { content, metadata, customId } = body;
 
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     const response = await supermemoryClient.memories.add({
       content,
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       metadata: {
         ...metadata,
         date: metadata.date || new Date().toISOString(),

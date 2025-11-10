@@ -1,22 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { DarkBackground } from '@/components/DarkBackground';
 import { Dialog } from '@/components/ui/Dialog';
-import { Mail, Bell, Zap, CheckCircle } from 'lucide-react';
+import { Mail, Bell, Zap, CheckCircle, User, Database, Trash2 } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 export default function SettingsPage() {
+  const { user } = useUser();
   const [email, setEmail] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any>(null);
+  const [memoryStats, setMemoryStats] = useState<any>(null);
   const [dialog, setDialog] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' | 'info' | 'email' }>({
     isOpen: false,
     title: '',
     message: '',
     type: 'info',
   });
+
+  // Load memory stats
+  useEffect(() => {
+    fetchMemoryStats();
+  }, []);
+
+  const fetchMemoryStats = async () => {
+    try {
+      const response = await fetch('/api/memories/status');
+      const data = await response.json();
+      setMemoryStats(data);
+    } catch (error) {
+      console.error('Failed to fetch memory stats:', error);
+    }
+  };
 
   const handleGeneratePreview = async () => {
     setLoading(true);
@@ -82,8 +100,59 @@ export default function SettingsPage() {
         <div className="max-w-4xl mx-auto">
           <div className="mb-12">
             <h1 className="text-5xl font-bold text-white mb-4 font-syne">Settings</h1>
-            <p className="text-xl text-gray-400">Configure your proactive notifications</p>
+            <p className="text-xl text-gray-400">Configure your account and preferences</p>
           </div>
+
+          {/* User Profile */}
+          {user && (
+            <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 mb-8">
+              <div className="flex items-center gap-3 mb-6">
+                <User className="w-6 h-6 text-blue-400" />
+                <h2 className="text-2xl font-bold text-white font-syne">Profile</h2>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-6">
+                  <img
+                    src={user.imageUrl}
+                    alt={user.fullName || 'User'}
+                    className="w-20 h-20 rounded-full border-2 border-purple-500"
+                  />
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">{user.fullName || 'Anonymous User'}</h3>
+                    <p className="text-gray-400">{user.primaryEmailAddress?.emailAddress}</p>
+                    <p className="text-sm text-gray-500 mt-1">Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</p>
+                  </div>
+                </div>
+
+                {/* Memory Stats */}
+                {memoryStats && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <Database className="w-5 h-5 text-purple-400 mb-2" />
+                      <div className="text-2xl font-bold text-white">{memoryStats.total || 0}</div>
+                      <div className="text-sm text-gray-400">Total Memories</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <CheckCircle className="w-5 h-5 text-green-400 mb-2" />
+                      <div className="text-2xl font-bold text-white">{memoryStats.completed || 0}</div>
+                      <div className="text-sm text-gray-400">Completed</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <Zap className="w-5 h-5 text-yellow-400 mb-2" />
+                      <div className="text-2xl font-bold text-white">{memoryStats.queued || 0}</div>
+                      <div className="text-sm text-gray-400">Processing</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <Trash2 className="w-5 h-5 text-red-400 mb-2" />
+                      <div className="text-2xl font-bold text-white">{memoryStats.failed || 0}</div>
+                      <div className="text-sm text-gray-400">Failed</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Email Digest Settings */}
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 mb-8">
@@ -191,80 +260,6 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-
-          {/* Future Connections */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10">
-            <h3 className="text-xl font-bold text-white mb-2 font-syne">Future Connections</h3>
-            <p className="text-gray-400 mb-6">Connect your tools to automatically capture context and enhance your memory.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">�</div>
-                <div className="text-white font-semibold mb-1">Google Docs</div>
-                <div className="text-sm text-gray-400">Auto-save notes and documents</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">📝</div>
-                <div className="text-white font-semibold mb-1">Notion</div>
-                <div className="text-sm text-gray-400">Sync your knowledge base</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">🎥</div>
-                <div className="text-white font-semibold mb-1">Google Meet</div>
-                <div className="text-sm text-gray-400">Capture meeting transcripts</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">�</div>
-                <div className="text-white font-semibold mb-1">Zoom</div>
-                <div className="text-sm text-gray-400">Save meeting summaries</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">📧</div>
-                <div className="text-white font-semibold mb-1">Gmail</div>
-                <div className="text-sm text-gray-400">Important emails as memories</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">💬</div>
-                <div className="text-white font-semibold mb-1">Slack</div>
-                <div className="text-sm text-gray-400">Key conversations & threads</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">🗓️</div>
-                <div className="text-white font-semibold mb-1">Google Calendar</div>
-                <div className="text-sm text-gray-400">Event context & notes</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">🔗</div>
-                <div className="text-white font-semibold mb-1">Browser Extension</div>
-                <div className="text-sm text-gray-400">Save from any webpage</div>
-              </div>
-              
-              <div className="p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-all cursor-not-allowed opacity-75">
-                <div className="text-2xl mb-2">💻</div>
-                <div className="text-white font-semibold mb-1">GitHub</div>
-                <div className="text-sm text-gray-400">Code snippets & PRs</div>
-              </div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-purple-300 font-semibold mb-1">Coming Soon</p>
-                  <p className="text-sm text-purple-200">
-                    These integrations will automatically capture context from your daily tools, making your memory even more powerful.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </DarkBackground>

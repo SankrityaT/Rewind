@@ -1,17 +1,17 @@
 import Groq from 'groq-sdk';
-import { supermemoryClient, USER_CONTAINER_TAG } from './supermemory';
+import { supermemoryClient } from './supermemory';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-export async function generateAIInsight() {
+export async function generateAIInsight(containerTag: string) {
   try {
-    console.log('🔍 [AI Insight] Fetching memories for container:', USER_CONTAINER_TAG);
-    
+    console.log('🔍 [AI Insight] Fetching memories for container:', containerTag);
+
     // Fetch user memories from Supermemory
     const response = await supermemoryClient.memories.list({
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit: 50, // Get recent memories for context
     });
 

@@ -9,10 +9,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch the memory
-    const { supermemoryClient, USER_CONTAINER_TAG } = await import('@/lib/supermemory');
-    
+    const { supermemoryClient } = await import('@/lib/supermemory');
+    const { getUserContainerTag } = await import('@/lib/auth');
+
+    const containerTag = await getUserContainerTag();
+
     const response: any = await supermemoryClient.memories.list({
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit: 200,
     });
 

@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { supermemoryClient, USER_CONTAINER_TAG } from '@/lib/supermemory';
+import { supermemoryClient } from '@/lib/supermemory';
+import { getUserContainerTag } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const containerTag = await getUserContainerTag();
+
     // Fetch all memories to check their status
     const response: any = await supermemoryClient.memories.list({
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit: 200,
     });
 

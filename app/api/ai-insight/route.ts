@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { generateAIInsight } from '@/lib/groq';
+import { getUserContainerTag } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const containerTag = await getUserContainerTag();
     console.log('🚀 [AI Insight API] Starting insight generation...');
-    const insight = await generateAIInsight();
+    const insight = await generateAIInsight(containerTag);
     console.log('✅ [AI Insight API] Insight generated successfully:', insight);
     return NextResponse.json({ insight });
   } catch (error: any) {

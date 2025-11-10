@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supermemoryClient, USER_CONTAINER_TAG } from '@/lib/supermemory';
+import { supermemoryClient } from '@/lib/supermemory';
+import { getUserContainerTag } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    const containerTag = await getUserContainerTag();
     const body = await request.json();
     const { query, limit = 20 } = body;
 
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     const response = await supermemoryClient.search.execute({
       q: query,
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit,
     });
 

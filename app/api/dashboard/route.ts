@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supermemoryClient, USER_CONTAINER_TAG } from '@/lib/supermemory';
+import { supermemoryClient } from '@/lib/supermemory';
+import { getUserContainerTag } from '@/lib/auth';
 import { PatternDetector } from '@/lib/patterns';
 import { Memory } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
+    const containerTag = await getUserContainerTag();
     // Fetch all memories for the user
     const response: any = await supermemoryClient.memories.list({
-      containerTags: [USER_CONTAINER_TAG],
+      containerTags: [containerTag],
       limit: 200,
     });
 
